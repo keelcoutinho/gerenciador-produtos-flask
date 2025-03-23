@@ -8,6 +8,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Swagger(app)
 db = SQLAlchemy(app)
 
+# Middleware para permitir CORS manualmente
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')  # Permite todas as origens
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE')
+    return response
+
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     imagem = db.Column(db.String(255), nullable=False)
@@ -98,6 +106,38 @@ def listar_produtos():
     produtos = Produto.query.all()
     resultado = [{"id": p.id, "imagem": p.imagem, "nome": p.nome, "valor": p.valor, "descricao": p.descricao} for p in produtos]
     return jsonify(resultado)
+
+# Rota para obter um produto específico pelo ID
+@app.route('/produto/<int:id>', methods=['GET'])
+def obter_produto(id):
+    """
+    Retorna um produto pelo ID
+    ---
+    tags:
+      - Produtos
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: ID do produto a ser buscado
+    responses:
+      200:
+        description: Produto encontrado
+      404:
+        description: Produto não encontrado
+    """
+    produto = Produto.query.get(id)
+    if not produto:
+        return jsonify({"error": "Produto não encontrado"}), 404
+
+    return jsonify({
+        "id": produto.id,
+        "imagem": produto.imagem,
+        "nome": produto.nome,
+        "valor": produto.valor,
+        "descricao": produto.descricao
+    }), 200
 
 # Rota para atualizar os produtos
 @app.route('/produto/<int:id>', methods=['PUT'])
